@@ -206,3 +206,12 @@ class TestCube:
         assert state_str[27:36] == "O" * 9, "BACK面应该全是橙色"
         assert state_str[36:45] == "B" * 9, "LEFT面应该全是蓝色"
         assert state_str[45:54] == "G" * 9, "RIGHT面应该全是绿色"
+
+    def test_complex_algorithm2(self):
+        """测试复杂算法"""
+        cube = Cube()
+        moves = "U2 x' M2' u l L2 R' F2 f' S2' b2 b U z S f b b"
+        cube.apply_moves(moves)
+        assert str(cube) == "RYWWYRWYWYGGYWRRWYOOOOROBYYRRGROWOOWYBBGBBBBRGBGGGGOWB", (
+            "魔方状态异常"
+        )

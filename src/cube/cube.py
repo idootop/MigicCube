@@ -24,13 +24,14 @@ class Cube:
             self.faces = state
 
     def reset(self):
+        """重置魔方到初始状态"""
         self.faces = [
-            [[Color.YELLOW] * 3 for _ in range(3)],
-            [[Color.WHITE] * 3 for _ in range(3)],
-            [[Color.RED] * 3 for _ in range(3)],
-            [[Color.ORANGE] * 3 for _ in range(3)],
-            [[Color.BLUE] * 3 for _ in range(3)],
-            [[Color.GREEN] * 3 for _ in range(3)],
+            [[Color.YELLOW] * 3 for _ in range(3)],  # UP
+            [[Color.WHITE] * 3 for _ in range(3)],  # DOWN
+            [[Color.RED] * 3 for _ in range(3)],  # FRONT
+            [[Color.ORANGE] * 3 for _ in range(3)],  # BACK
+            [[Color.BLUE] * 3 for _ in range(3)],  # LEFT
+            [[Color.GREEN] * 3 for _ in range(3)],  # RIGHT
         ]
         return self
 
@@ -75,85 +76,99 @@ class Cube:
         """
         move, times, clockwise = Move.get_info(op)
 
-        # 如果是逆时针，转换为顺时针3次
-        if not clockwise:
-            times = times * 3
+        # 旋转次数映射表：根据 times 和 clockwise 计算实际旋转次数
+        def get_turn_counts(times: int, clockwise: bool) -> tuple[int, int]:
+            """
+            获取主层和中层的旋转次数
+            返回: (主层次数, 中层次数)
+            """
+            if not clockwise:
+                times = -times
 
-        # 执行指定次数的旋转
-        for _ in range(times):
-            # 基本6面操作
-            if move == "U":
-                self._rotate_U()
-            elif move == "D":
-                self._rotate_D()
-            elif move == "F":
-                self._rotate_F()
-            elif move == "B":
-                self._rotate_B()
-            elif move == "L":
-                self._rotate_L()
-            elif move == "R":
-                self._rotate_R()
-            # 双层操作（外两层）
-            elif move == "u":
-                self._rotate_U()
-                self._rotate_E()
-                self._rotate_E()
-                self._rotate_E()  # E与U反向，所以转3次
-            elif move == "d":
-                self._rotate_D()
-                self._rotate_E()
-            elif move == "f":
-                self._rotate_F()
-                self._rotate_S()
-            elif move == "b":
-                self._rotate_B()
-                self._rotate_S()
-                self._rotate_S()
-                self._rotate_S()  # S与B反向
-            elif move == "l":
-                self._rotate_L()
-                self._rotate_M()
-            elif move == "r":
-                self._rotate_R()
-                self._rotate_M()
-                self._rotate_M()
-                self._rotate_M()  # M与R反向
-            # 中层操作
-            elif move == "M":
-                self._rotate_M()
-            elif move == "E":
-                self._rotate_E()
-            elif move == "S":
-                self._rotate_S()
-            # 整体旋转
-            elif move == "x":
-                # x = R + M' + L'
-                self._rotate_R()
-                self._rotate_M()
-                self._rotate_M()
-                self._rotate_M()
-                self._rotate_L()
-                self._rotate_L()
-                self._rotate_L()
-            elif move == "y":
-                # y = U + E' + D'
-                self._rotate_U()
-                self._rotate_E()
-                self._rotate_E()
-                self._rotate_E()
-                self._rotate_D()
-                self._rotate_D()
-                self._rotate_D()
-            elif move == "z":
-                # z = F + S + B'
-                self._rotate_F()
-                self._rotate_S()
-                self._rotate_B()
-                self._rotate_B()
-                self._rotate_B()
+            if times == -2:
+                return (2, 2)
+            elif times == -1:
+                return (3, 1)
+            elif times == 1:
+                return (1, 3)
+            elif times == 2:
+                return (2, 2)
             else:
-                raise ValueError(f"不支持的操作: {move}")
+                t = times % 4
+                if t == 0:
+                    return (0, 0)
+                elif t == 3:
+                    return (3, 1)
+                else:
+                    return (t, 4 - t if t < 4 else 0)
+
+        t1, t2 = get_turn_counts(times, clockwise)
+
+        if t1 == 0:
+            return
+
+        # 处理整体旋转
+        if move == "x":
+            # x = R + M' + L'
+            self._repeat_move("R", t1)
+            self._repeat_move("M", t2)
+            self._repeat_move("L", t2)
+        elif move == "y":
+            # y = U + E' + D'
+            self._repeat_move("U", t1)
+            self._repeat_move("E", t2)
+            self._repeat_move("D", t2)
+        elif move == "z":
+            # z = F + S + B'
+            self._repeat_move("F", t1)
+            self._repeat_move("S", t1)
+            self._repeat_move("B", t2)
+        # 处理双层操作
+        elif move in "udlrfb":
+            layer_map = {
+                "r": ("R", "M", t1, t2),  # r = R + M'
+                "l": ("L", "M", t1, t1),  # l = L + M
+                "u": ("U", "E", t1, t2),  # u = U + E'
+                "d": ("D", "E", t1, t1),  # d = D + E
+                "f": ("F", "S", t1, t1),  # f = F + S
+                "b": ("B", "S", t1, t2),  # b = B + S'
+            }
+            outer, middle, outer_times, middle_times = layer_map[move]
+
+            self._repeat_move(outer, outer_times)
+            self._repeat_move(middle, middle_times)
+        # 处理基本操作和中层操作
+        else:
+            actual_times = times * 3 if not clockwise else times
+            self._repeat_move(move, actual_times)
+
+    def _repeat_move(self, move: str, times: int):
+        """重复执行基本操作指定次数"""
+        for _ in range(times % 4):
+            self._execute_basic_move(move)
+
+    def _execute_basic_move(self, move: str):
+        """执行单次基本操作"""
+        if move == "U":
+            self._rotate_U()
+        elif move == "D":
+            self._rotate_D()
+        elif move == "F":
+            self._rotate_F()
+        elif move == "B":
+            self._rotate_B()
+        elif move == "L":
+            self._rotate_L()
+        elif move == "R":
+            self._rotate_R()
+        elif move == "M":
+            self._rotate_M()
+        elif move == "E":
+            self._rotate_E()
+        elif move == "S":
+            self._rotate_S()
+        else:
+            raise ValueError(f"不支持的操作: {move}")
 
     def apply_moves(self, moves: str | list[str] | list[Move]):
         """应用一系列转动操作"""
@@ -165,9 +180,10 @@ class Cube:
 
     def scramble(self, moves_count: int = 100):
         """打乱魔方"""
-        moves = random.choices(list(Move), k=moves_count)
+        moves = [m.value for m in Move]
+        moves = random.choices(moves, k=moves_count)
         self.apply_moves(moves)
-        return self
+        return " ".join(moves)
 
     def __str__(self) -> str:
         """获取魔方状态的字符串表示"""
@@ -259,104 +275,126 @@ class Cube:
         new_face = [[old_face[2 - j][i] for j in range(3)] for i in range(3)]
         self.set_face(face, new_face)
 
-    def _rotate_face_counterclockwise(self, face: Face):
-        """逆时针旋转一个面90度"""
-        # 逆时针 = 顺时针3次
-        for _ in range(3):
-            self._rotate_face_clockwise(face)
-
     def _rotate_U(self):
         """上面顺时针旋转90度"""
         self._rotate_face_clockwise(Face.UP)
         # 旋转相邻的边
-        temp = [self.faces[Face.FRONT.value][0][i] for i in range(3)]
+        front_face = [self.faces[Face.FRONT.value][0][i] for i in range(3)]
+        right_face = [self.faces[Face.RIGHT.value][0][i] for i in range(3)]
+        back_face = [self.faces[Face.BACK.value][0][i] for i in range(3)]
+        left_face = [self.faces[Face.LEFT.value][0][i] for i in range(3)]
         for i in range(3):
-            self.faces[Face.FRONT.value][0][i] = self.faces[Face.RIGHT.value][0][i]
-            self.faces[Face.RIGHT.value][0][i] = self.faces[Face.BACK.value][0][i]
-            self.faces[Face.BACK.value][0][i] = self.faces[Face.LEFT.value][0][i]
-            self.faces[Face.LEFT.value][0][i] = temp[i]
+            self.faces[Face.FRONT.value][0][i] = right_face[i]
+            self.faces[Face.RIGHT.value][0][i] = back_face[i]
+            self.faces[Face.BACK.value][0][i] = left_face[i]
+            self.faces[Face.LEFT.value][0][i] = front_face[i]
 
     def _rotate_D(self):
         """下面顺时针旋转90度"""
         self._rotate_face_clockwise(Face.DOWN)
         # 旋转相邻的边
-        temp = [self.faces[Face.FRONT.value][2][i] for i in range(3)]
+        front_face = [self.faces[Face.FRONT.value][2][i] for i in range(3)]
+        left_face = [self.faces[Face.LEFT.value][2][i] for i in range(3)]
+        back_face = [self.faces[Face.BACK.value][2][i] for i in range(3)]
+        right_face = [self.faces[Face.RIGHT.value][2][i] for i in range(3)]
         for i in range(3):
-            self.faces[Face.FRONT.value][2][i] = self.faces[Face.LEFT.value][2][i]
-            self.faces[Face.LEFT.value][2][i] = self.faces[Face.BACK.value][2][i]
-            self.faces[Face.BACK.value][2][i] = self.faces[Face.RIGHT.value][2][i]
-            self.faces[Face.RIGHT.value][2][i] = temp[i]
+            self.faces[Face.FRONT.value][2][i] = left_face[i]
+            self.faces[Face.LEFT.value][2][i] = back_face[i]
+            self.faces[Face.BACK.value][2][i] = right_face[i]
+            self.faces[Face.RIGHT.value][2][i] = front_face[i]
 
     def _rotate_F(self):
         """前面顺时针旋转90度"""
         self._rotate_face_clockwise(Face.FRONT)
         # 旋转相邻的边
-        temp = [self.faces[Face.UP.value][2][i] for i in range(3)]
+        up_face = [self.faces[Face.UP.value][2][i] for i in range(3)]
+        left_face = [self.faces[Face.LEFT.value][i][2] for i in range(3)]
+        down_face = [self.faces[Face.DOWN.value][0][i] for i in range(3)]
+        right_face = [self.faces[Face.RIGHT.value][i][0] for i in range(3)]
         for i in range(3):
-            self.faces[Face.UP.value][2][i] = self.faces[Face.LEFT.value][2 - i][2]
-            self.faces[Face.LEFT.value][2 - i][2] = self.faces[Face.DOWN.value][0][i]
-            self.faces[Face.DOWN.value][0][i] = self.faces[Face.RIGHT.value][2 - i][0]
-            self.faces[Face.RIGHT.value][2 - i][0] = temp[i]
+            self.faces[Face.UP.value][2][i] = left_face[2 - i]
+            self.faces[Face.LEFT.value][i][2] = down_face[i]
+            self.faces[Face.DOWN.value][0][i] = right_face[2 - i]
+            self.faces[Face.RIGHT.value][i][0] = up_face[i]
 
     def _rotate_B(self):
         """后面顺时针旋转90度"""
+        # 旋转面
         self._rotate_face_clockwise(Face.BACK)
         # 旋转相邻的边
-        temp = [self.faces[Face.UP.value][0][i] for i in range(3)]
+        left_face = [self.faces[Face.LEFT.value][i][0] for i in range(3)]
+        up_face = [self.faces[Face.UP.value][0][i] for i in range(3)]
+        right_face = [self.faces[Face.RIGHT.value][i][2] for i in range(3)]
+        down_face = [self.faces[Face.DOWN.value][2][i] for i in range(3)]
         for i in range(3):
-            self.faces[Face.UP.value][0][i] = self.faces[Face.RIGHT.value][i][2]
-            self.faces[Face.RIGHT.value][i][2] = self.faces[Face.DOWN.value][2][2 - i]
-            self.faces[Face.DOWN.value][2][2 - i] = self.faces[Face.LEFT.value][i][0]
-            self.faces[Face.LEFT.value][i][0] = temp[i]
+            self.faces[Face.LEFT.value][2 - i][0] = up_face[i]
+            self.faces[Face.DOWN.value][2][i] = left_face[i]
+            self.faces[Face.RIGHT.value][2 - i][2] = down_face[i]
+            self.faces[Face.UP.value][0][i] = right_face[i]
 
     def _rotate_L(self):
         """左面顺时针旋转90度"""
         self._rotate_face_clockwise(Face.LEFT)
         # 旋转相邻的边
-        temp = [self.faces[Face.UP.value][i][0] for i in range(3)]
+        up_face = [self.faces[Face.UP.value][i][0] for i in range(3)]
+        back_face = [self.faces[Face.BACK.value][i][2] for i in range(3)]
+        down_face = [self.faces[Face.DOWN.value][i][0] for i in range(3)]
+        front_face = [self.faces[Face.FRONT.value][i][0] for i in range(3)]
         for i in range(3):
-            self.faces[Face.UP.value][i][0] = self.faces[Face.BACK.value][2 - i][2]
-            self.faces[Face.BACK.value][2 - i][2] = self.faces[Face.DOWN.value][i][0]
-            self.faces[Face.DOWN.value][i][0] = self.faces[Face.FRONT.value][i][0]
-            self.faces[Face.FRONT.value][i][0] = temp[i]
+            self.faces[Face.UP.value][i][0] = back_face[2 - i]
+            self.faces[Face.BACK.value][i][2] = down_face[2 - i]
+            self.faces[Face.DOWN.value][i][0] = front_face[i]
+            self.faces[Face.FRONT.value][i][0] = up_face[i]
 
     def _rotate_R(self):
         """右面顺时针旋转90度"""
         self._rotate_face_clockwise(Face.RIGHT)
         # 旋转相邻的边
-        temp = [self.faces[Face.UP.value][i][2] for i in range(3)]
+        up_face = [self.faces[Face.UP.value][i][2] for i in range(3)]
+        front_face = [self.faces[Face.FRONT.value][i][2] for i in range(3)]
+        down_face = [self.faces[Face.DOWN.value][i][2] for i in range(3)]
+        back_face = [self.faces[Face.BACK.value][i][0] for i in range(3)]
         for i in range(3):
-            self.faces[Face.UP.value][i][2] = self.faces[Face.FRONT.value][i][2]
-            self.faces[Face.FRONT.value][i][2] = self.faces[Face.DOWN.value][i][2]
-            self.faces[Face.DOWN.value][i][2] = self.faces[Face.BACK.value][2 - i][0]
-            self.faces[Face.BACK.value][2 - i][0] = temp[i]
+            self.faces[Face.UP.value][i][2] = front_face[i]
+            self.faces[Face.FRONT.value][i][2] = down_face[i]
+            self.faces[Face.DOWN.value][i][2] = back_face[2 - i]
+            self.faces[Face.BACK.value][i][0] = up_face[2 - i]
 
     def _rotate_M(self):
         """中间层M（与L同向）顺时针旋转90度"""
         # M层是左右之间的中间层，与L同向
-        temp = [self.faces[Face.UP.value][i][1] for i in range(3)]
+        up_face = [self.faces[Face.UP.value][i][1] for i in range(3)]
+        back_face = [self.faces[Face.BACK.value][i][1] for i in range(3)]
+        down_face = [self.faces[Face.DOWN.value][i][1] for i in range(3)]
+        front_face = [self.faces[Face.FRONT.value][i][1] for i in range(3)]
         for i in range(3):
-            self.faces[Face.UP.value][i][1] = self.faces[Face.BACK.value][2 - i][1]
-            self.faces[Face.BACK.value][2 - i][1] = self.faces[Face.DOWN.value][i][1]
-            self.faces[Face.DOWN.value][i][1] = self.faces[Face.FRONT.value][i][1]
-            self.faces[Face.FRONT.value][i][1] = temp[i]
+            self.faces[Face.UP.value][i][1] = back_face[2 - i]
+            self.faces[Face.BACK.value][i][1] = down_face[2 - i]
+            self.faces[Face.DOWN.value][i][1] = front_face[i]
+            self.faces[Face.FRONT.value][i][1] = up_face[i]
 
     def _rotate_E(self):
         """中间层E（与D同向）顺时针旋转90度"""
         # E层是上下之间的中间层，与D同向
-        temp = [self.faces[Face.FRONT.value][1][i] for i in range(3)]
+        front_face = [self.faces[Face.FRONT.value][1][i] for i in range(3)]
+        left_face = [self.faces[Face.LEFT.value][1][i] for i in range(3)]
+        back_face = [self.faces[Face.BACK.value][1][i] for i in range(3)]
+        right_face = [self.faces[Face.RIGHT.value][1][i] for i in range(3)]
         for i in range(3):
-            self.faces[Face.FRONT.value][1][i] = self.faces[Face.LEFT.value][1][i]
-            self.faces[Face.LEFT.value][1][i] = self.faces[Face.BACK.value][1][i]
-            self.faces[Face.BACK.value][1][i] = self.faces[Face.RIGHT.value][1][i]
-            self.faces[Face.RIGHT.value][1][i] = temp[i]
+            self.faces[Face.FRONT.value][1][i] = left_face[i]
+            self.faces[Face.LEFT.value][1][i] = back_face[i]
+            self.faces[Face.BACK.value][1][i] = right_face[i]
+            self.faces[Face.RIGHT.value][1][i] = front_face[i]
 
     def _rotate_S(self):
         """中间层S（与F同向）顺时针旋转90度"""
         # S层是前后之间的中间层，与F同向
-        temp = [self.faces[Face.UP.value][1][i] for i in range(3)]
+        up_face = [self.faces[Face.UP.value][1][i] for i in range(3)]
+        left_face = [self.faces[Face.LEFT.value][i][1] for i in range(3)]
+        down_face = [self.faces[Face.DOWN.value][1][i] for i in range(3)]
+        right_face = [self.faces[Face.RIGHT.value][i][1] for i in range(3)]
         for i in range(3):
-            self.faces[Face.UP.value][1][i] = self.faces[Face.LEFT.value][2 - i][1]
-            self.faces[Face.LEFT.value][2 - i][1] = self.faces[Face.DOWN.value][1][i]
-            self.faces[Face.DOWN.value][1][i] = self.faces[Face.RIGHT.value][2 - i][1]
-            self.faces[Face.RIGHT.value][2 - i][1] = temp[i]
+            self.faces[Face.UP.value][1][i] = left_face[2 - i]
+            self.faces[Face.LEFT.value][i][1] = down_face[i]
+            self.faces[Face.DOWN.value][1][i] = right_face[2 - i]
+            self.faces[Face.RIGHT.value][i][1] = up_face[i]
