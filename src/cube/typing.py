@@ -72,6 +72,23 @@ class Move(Enum):
     z = "z"  # Z 轴
 
     @staticmethod
+    def reverse(op: str | Self):
+        if isinstance(op, Move):
+            op = op.value
+        if "'" in op:
+            return op.replace("'", "")
+        if "2" in op:
+            return op  # 180度转动逆操作还是180度
+        return op + "'"
+
+    @staticmethod
+    def reverse_moves(moves: str | list[str] | list[Self]):
+        if isinstance(moves, str):
+            moves = moves.split(" ")
+        inverse_moves = [Move.reverse(m) for m in moves]
+        return " ".join(inverse_moves)
+
+    @staticmethod
     def get_info(op: str | Self):
         if isinstance(op, Move):
             op = op.value

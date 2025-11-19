@@ -19,17 +19,20 @@ class Cube:
             state: 6x3x3的颜色数组，如果为None则初始化为已还原状态
         """
         if state is None:
-            # 初始化已还原状态
-            self.faces = [
-                [[Color.YELLOW] * 3 for _ in range(3)],
-                [[Color.WHITE] * 3 for _ in range(3)],
-                [[Color.RED] * 3 for _ in range(3)],
-                [[Color.ORANGE] * 3 for _ in range(3)],
-                [[Color.BLUE] * 3 for _ in range(3)],
-                [[Color.GREEN] * 3 for _ in range(3)],
-            ]
+            self.reset()
         else:
             self.faces = state
+
+    def reset(self):
+        self.faces = [
+            [[Color.YELLOW] * 3 for _ in range(3)],
+            [[Color.WHITE] * 3 for _ in range(3)],
+            [[Color.RED] * 3 for _ in range(3)],
+            [[Color.ORANGE] * 3 for _ in range(3)],
+            [[Color.BLUE] * 3 for _ in range(3)],
+            [[Color.GREEN] * 3 for _ in range(3)],
+        ]
+        return self
 
     def get_face(self, face: Face) -> list[list[Color]]:
         """获取指定面的颜色矩阵"""
@@ -162,7 +165,7 @@ class Cube:
 
     def scramble(self, moves_count: int = 100):
         """打乱魔方"""
-        moves = random.sample(list(Move), moves_count)
+        moves = random.choices(list(Move), k=moves_count)
         self.apply_moves(moves)
         return self
 
