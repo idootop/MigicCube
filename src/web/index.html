@@ -140,19 +140,11 @@
 </head>
 
 <body>
-  <div class="roofpig" data-config="algdisplay=2p|setupmoves=U2 x' M2' u l L2 R' F2 f' S2' b2 b U z S f b b">
-  </div>
 
-  <script>
-    $(document).on('click', '.roofpig', function () {
-      const algorithm = prompt('请输入算法', $(this).text());
-      if (algorithm) {
-        $('.roofpig').remove();
-        $('body').append(`<div class="roofpig" data-config="algdisplay=2p|flags=showalg|alg=${algorithm}"></div>`);
-        new CubeAnimation($('.roofpig'));
-      }
-    });
-  </script>
+  <!-- 使用 REVERSED 还原魔方初始状态 -->
+  <div class="roofpig"
+    data-config="algdisplay=2p|setupmoves=U' F2 R2 F L F' R2 F L' F R U B U' B' R' U r U B U' B' r' B U B' U2 B U B' U L U' L' U B' U B U' L' U L U2 F U F' U2 F' U F U2 R U R' U2 D2 R D' L D' B' R2 U F' R' y">
+  </div>
 
 </body>
 

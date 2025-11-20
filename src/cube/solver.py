@@ -1,49 +1,46 @@
-"""
-CFOP 魔方速解
-"""
-
-from typing import List
-
-from .cube import Cube
+from .core.solver import Solver as CoreSolver
+from .typing import Solution
 
 
-class Solver:
-    """CFOP 解法求解器"""
+class Solver(CoreSolver):
+    def __init__(self, cube):
+        super().__init__(cube)
 
-    def __init__(self, cube: Cube):
-        self.cube = cube
-        self.solution: List[str] = []
+    def solve(self):
+        self.solveCube(optimize=True)
+        current = -1
+        alignmentMoves = ""
+        baseCrossMoves = ""
+        firstLayerMoves = ""
+        ollMoves = ""
+        pllMoves = ""
+        for form in self.__forms:
+            if form == "--align--":
+                current = 0
+            elif form == "--base--":
+                current = 1
+            elif form == "--first--":
+                current = 2
+            elif form == "--oll--":
+                current = 3
+            elif form == "--pll--":
+                current = 4
+            else:
+                if current == 0:
+                    alignmentMoves += form
+                elif current == 1:
+                    baseCrossMoves += form
+                elif current == 2:
+                    firstLayerMoves += form
+                elif current == 3:
+                    ollMoves += form
+                elif current == 4:
+                    pllMoves += form
 
-    def solve(self) -> List[str]:
-        """
-        执行完整的 CFOP 求解
-        Returns:
-            List[str]: 还原步骤列表
-        """
-        self.solution = []
-
-        # 1. Cross (底部十字)
-        self.solve_cross()
-
-        # 2. F2L (前两层)
-        self.solve_f2l()
-
-        # 3. OLL (顶层定向)
-        self.solve_oll()
-
-        # 4. PLL (顶层排列)
-        self.solve_pll()
-
-        return self.solution
-
-    def solve_cross(self):
-        pass
-
-    def solve_f2l(self):
-        pass
-
-    def solve_oll(self):
-        pass
-
-    def solve_pll(self):
-        pass
+        return Solution(
+            align=alignmentMoves,
+            cross=baseCrossMoves,
+            f2l=firstLayerMoves,
+            oll=ollMoves,
+            pll=pllMoves,
+        )
