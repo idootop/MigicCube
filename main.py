@@ -3,7 +3,7 @@
 
 import sys
 
-from src.cube import Cube
+from cube import Cube
 
 
 def solve_cube(state: str):

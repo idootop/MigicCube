@@ -12,6 +12,16 @@
       "envFile": "${workspaceFolder}/.env"
     },
     {
+      "name": "Python: 当前文件",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "justMyCode": false,
+      "console": "internalConsole",
+      "internalConsoleOptions": "openOnSessionStart",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
       "name": "Pytest: 当前测试文件",
       "type": "debugpy",
       "request": "launch",
