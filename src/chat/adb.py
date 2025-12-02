@@ -5,7 +5,6 @@ ADB 工具模块
 
 import re
 import subprocess
-import time
 from dataclasses import dataclass
 from typing import Callable
 
@@ -37,7 +36,53 @@ class AdbHelper:
             capture_output=True,
         )
 
-    def listen_asr(self, callback: Callable[[AsrMessage], bool]):
+    def listen_volume(self, on_message: Callable[[AsrMessage], bool]):
+        """
+        监听音量变化
+        """
+        process = subprocess.Popen(
+            [
+                "adb",
+                "-s",
+                self.server_device,
+                "shell",
+                "watch -n 1 'dumpsys audio | grep -i setStreamVolume | tail -n 1'",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        set_volume_pattern = re.compile(
+            r"setStreamVolume\(stream:STREAM_MUSIC index:(\d+) flags:0x40 oldIndex:(\d+)\) from com.android.bluetooth"
+        )
+
+        last = ""
+        try:
+            assert process.stdout is not None
+            for line in process.stdout:
+                match = set_volume_pattern.search(line)
+                if match:
+                    index = int(match.group(1))
+                    old_index = int(match.group(2))
+                    if last and line.strip() != last:
+                        volume_up = index > old_index
+                        if index == old_index:
+                            volume_up = index > 1
+                        on_message(
+                            AsrMessage(
+                                id=f"volume_{'up' if volume_up else 'down'}",
+                                text="音量变大" if volume_up else "音量变小",
+                                raw=line.strip(),
+                            )
+                        )
+                    last = line.strip()
+
+        finally:
+            process.terminate()
+            process.wait()
+
+    def logcat(self, on_message: Callable[[AsrMessage], bool]):
         """
         监听语音识别输出
 
@@ -53,38 +98,63 @@ class AdbHelper:
             text=True,
         )
 
-        pattern = re.compile(r"onAsrFinal:([a-f0-9]+),(.+)$")
+        asr_pattern = re.compile(r"onAsrFinal:([a-f0-9]+),(.+)$")
+        take_photo_pattern = re.compile(r"Device-Sync: type: 18")
 
         try:
             assert process.stdout is not None
             for line in process.stdout:
-                if "onAsrFinal" in line:
-                    match = pattern.search(line)
+                if "Device-Sync" in line:
+                    match = take_photo_pattern.search(line)
+                    if match:
+                        on_message(
+                            AsrMessage(id="take_photo", text="拍照", raw=line.strip())
+                        )
+                elif "onAsrFinal" in line:
+                    match = asr_pattern.search(line)
                     if match:
                         msg = AsrMessage(
                             id=match.group(1),
                             text=match.group(2).strip(),
                             raw=line.strip(),
                         )
-                        if not callback(msg):
+                        if not on_message(msg):
                             break
         finally:
             process.terminate()
             process.wait()
 
-    def take_photo(self, output_path: str = "temp/photo.jpg") -> bool:
+    def save_photo(self, output_path: str = "temp/photo.jpg") -> bool:
         """
-        使用客户端设备拍照并保存到本地
+        保存最新图片封面到本地
+        """
+        try:
+            result = subprocess.run(
+                [
+                    "adb",
+                    "-s",
+                    self.client_device,
+                    "shell",
+                    "cat /storage/emulated/0/DCIM/XiaoAi/*.jpg",
+                ],
+                capture_output=True,
+            )
+            if result.stdout:
+                with open(output_path, "wb") as f:
+                    f.write(result.stdout)
+                return True
+            return False
+        except Exception as e:
+            print(f"保存图片失败: {e}")
+            return False
 
-        Args:
-            output_path: 本地保存路径
-
-        Returns:
-            是否成功
+    def take_photo(self) -> bool:
+        """
+        使用客户端设备拍照（拍照时需要确保不在唤醒状态）
         """
         try:
             # 发送拍照广播
-            subprocess.run(
+            result = subprocess.run(
                 [
                     "adb",
                     "-s",
@@ -98,27 +168,7 @@ class AdbHelper:
                 capture_output=True,
                 check=True,
             )
-
-            # 等待拍照完成
-            time.sleep(1.5)
-
-            # 获取图片到本地
-            result = subprocess.run(
-                [
-                    "adb",
-                    "-s",
-                    self.client_device,
-                    "shell",
-                    "cat /storage/emulated/0/DCIM/XiaoAi/*.jpg",
-                ],
-                capture_output=True,
-            )
-
-            if result.returncode == 0 and result.stdout:
-                with open(output_path, "wb") as f:
-                    f.write(result.stdout)
-                return True
-            return False
-
-        except subprocess.CalledProcessError:
+            return result.returncode == 0
+        except Exception as e:
+            print(f"拍照失败: {e}")
             return False

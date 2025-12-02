@@ -138,7 +138,7 @@ def get_cube_colors(image: np.ndarray):
     return "".join(colors)
 
 
-def recognize_cube(image: np.ndarray, verbose: bool = False):
+def extract_colors(image_path: str, verbose: bool = False):
     """
     识别魔方
 
@@ -149,6 +149,7 @@ def recognize_cube(image: np.ndarray, verbose: bool = False):
     Returns:
         魔方颜色字符串，格式为 "WYROGBX"
     """
+    image = cv2.imread(image_path)
     contour = find_cube_contour(image)
     if contour is None:
         print("未检测到魔方轮廓")
@@ -172,8 +173,7 @@ def recognize_cube(image: np.ndarray, verbose: bool = False):
 def main():
     # 遍历 data/images 中的图片
     for file in os.listdir("data/images"):
-        image = cv2.imread(f"data/images/{file}")
-        recognize_cube(image, verbose=True)
+        extract_colors(f"data/images/{file}", verbose=True)
 
 
 if __name__ == "__main__":

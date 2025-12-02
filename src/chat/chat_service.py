@@ -3,12 +3,18 @@
 """
 
 import os
+import threading
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Callable, Optional
+from time import sleep
+from typing import Any, Optional
+
+from cube import Cube
+from cube.typing import Move, Solution
+from utils.core import write_json
+from vision.image import extract_colors
 
 from .adb import AdbHelper, AsrMessage
-from .image import CubeImageProcessor
 
 
 class DialogState(Enum):
@@ -42,14 +48,31 @@ class DialogContext:
     current_face_index: int = 0
 
     # 求解相关
-    solution_steps: list[str] = field(default_factory=list)
+    solution: Solution | None = None
     current_step_index: int = 0
+    solution_steps: list[str] = field(default_factory=list)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        self.__dict__[name] = value
+        if name == "current_step_index" and self.solution:
+            write_json(
+                "src/web/state.json",
+                {
+                    "step": value,
+                    "ops": self.solution.ops,
+                    "reversed_ops": self.solution.reversed_ops,
+                },
+            )
+        elif name == "solution" and not value:
+            # 清空状态
+            write_json("src/web/state.json", "{}")
 
     def reset(self):
         """重置上下文"""
         self.state = DialogState.IDLE
         self.faces = []
         self.current_face_index = 0
+        self.solution = None
         self.solution_steps = []
         self.current_step_index = 0
 
@@ -67,29 +90,16 @@ class ChatService:
         CubeFaceData("back", "后面"),
     ]
 
-    def __init__(
-        self,
-        adb_helper: Optional[AdbHelper] = None,
-        image_processor: Optional[CubeImageProcessor] = None,
-        notify_callback: Optional[Callable[[str], None]] = None,
-        demo_mode: bool = False,
-    ):
+    def __init__(self, adb_helper: Optional[AdbHelper] = None):
         self.adb = adb_helper or AdbHelper()
-        self.image_processor = image_processor or CubeImageProcessor()
         self.context = DialogContext()
-        self._notify = notify_callback or self._default_notify
-        self._demo_mode = demo_mode
 
         # 确保 temp 目录存在
         os.makedirs("temp", exist_ok=True)
 
-    def _default_notify(self, message: str):
+    def notify(self, message: str):
         """默认通知方法（打印到控制台）"""
         print(f"🤖 助手: {message}")
-
-    def notify(self, message: str):
-        """通知用户"""
-        self._notify(message)
 
     def _get_current_face(self) -> Optional[CubeFaceData]:
         """获取当前需要收集的面"""
@@ -106,7 +116,7 @@ class ChatService:
 
     def _is_face_confirmation(self, text: str) -> bool:
         """检查是否是面确认指令"""
-        keywords = ["这是", "这个是", "这面是", "好了", "拍好了", "拍照", "收到"]
+        keywords = ["这是", "好了", "拍照"]
         return any(kw in text for kw in keywords)
 
     def _handle_cube_trigger(self):
@@ -124,29 +134,22 @@ class ChatService:
         if not current_face:
             return
 
-        # 拍照
+        # 拍照（语音指令触发时，比如：好了）
+        if "拍照" not in text:
+            self.adb.take_photo()
+            return
+
+        # 等待缩略图更新
+        sleep(1)
+
+        # 获取图片
         image_path = f"temp/cube_{current_face.name}.jpg"
+        if not self.adb.save_photo(image_path):
+            self.notify("获取图片失败，请重试")
+            return
 
-        colors: str
-        if self._demo_mode:
-            # 演示模式下跳过拍照
-            self.notify(f"[演示模式] 已获取{current_face.chinese_name}的颜色")
-            colors = self.image_processor.get_placeholder_colors(current_face.name)
-        else:
-            self.notify(f"正在拍摄{current_face.chinese_name}...")
-
-            success = self.adb.take_photo(image_path)
-            if not success:
-                self.notify("拍照失败，请重试")
-                return
-
-            # 从图片提取颜色（目前使用占位符）
-            extracted = self.image_processor.extract_colors(image_path)
-            if extracted is None:
-                # 使用占位符颜色
-                colors = self.image_processor.get_placeholder_colors(current_face.name)
-            else:
-                colors = extracted
+        # 从图片提取颜色
+        colors = extract_colors(image_path)
 
         # 保存面数据
         face_data = CubeFaceData(
@@ -174,17 +177,19 @@ class ChatService:
         face_map = {face.name: face.colors for face in self.context.faces}
 
         cube_state = (
-            face_map.get("front", "X" * 9)
-            + face_map.get("left", "X" * 9)
-            + face_map.get("right", "X" * 9)
-            + face_map.get("up", "X" * 9)
-            + face_map.get("down", "X" * 9)
-            + face_map.get("back", "X" * 9)
+            self._cube_state
+            if self._cube_state
+            else (
+                face_map.get("front", "X" * 9)
+                + face_map.get("left", "X" * 9)
+                + face_map.get("right", "X" * 9)
+                + face_map.get("up", "X" * 9)
+                + face_map.get("down", "X" * 9)
+                + face_map.get("back", "X" * 9)
+            )
         )
 
         try:
-            from cube import Cube
-
             cube = Cube(cube_state)
 
             if cube.is_solved():
@@ -197,41 +202,49 @@ class ChatService:
             # 解析操作步骤
             moves = solution.ops.split(" ")
             self.context.solution_steps = moves
+            self.context.solution = solution
             self.context.current_step_index = 0
             self.context.state = DialogState.GUIDING
 
             self.notify(f"魔方已经解好了！一共需要 {len(moves)} 步")
-            self._show_current_step()
+            self._handle_next_step()
 
         except Exception as e:
             self.notify(f"求解失败: {e}")
             self.context.reset()
 
-    def _show_current_step(self):
-        """显示当前步骤"""
-        from cube.typing import Move
-
-        if self.context.current_step_index >= len(self.context.solution_steps):
-            self.context.reset()
-            return
-
-        step = self.context.current_step_index + 1
-        total = len(self.context.solution_steps)
-        move = self.context.solution_steps[self.context.current_step_index]
-        desc = Move.description(move)
-
-        self.notify(
-            f"{desc}，{f'还剩{total - step}步' if total - step > 0 else '魔方已解'}"
-        )
-
     def _handle_next_step(self):
         """处理下一步指令"""
-        self.context.current_step_index += 1
-        self._show_current_step()
+        total = len(self.context.solution_steps)
+        step = self.context.current_step_index
+
+        if step + 1 > total:
+            return
+
+        move = self.context.solution_steps[step]
+        desc = Move.description(move)
+        self.notify(
+            f"{desc}，{f'还剩{total - 1 - step}步' if total - step > 0 else '魔方已解'}"
+        )
+        self.context.current_step_index = step + 1
+
+    def _handle_previous_step(self):
+        """处理上一步指令"""
+        step = self.context.current_step_index
+        if step - 1 < -1:
+            return
+
+        self.notify("好了")
+        self.context.current_step_index = step - 1
 
     def _is_next_step_command(self, text: str) -> bool:
         """检查是否是下一步指令"""
-        keywords = ["下一步", "下一个", "继续", "好了", "完成", "搞定"]
+        keywords = ["下一步", "音量变大"]
+        return any(kw in text for kw in keywords)
+
+    def _is_previous_step_command(self, text: str) -> bool:
+        """检查是否是上一步指令"""
+        keywords = ["上一步", "音量变小"]
         return any(kw in text for kw in keywords)
 
     def _is_exit_command(self, text: str) -> bool:
@@ -274,6 +287,8 @@ class ChatService:
         elif self.context.state == DialogState.GUIDING:
             if self._is_next_step_command(text):
                 self._handle_next_step()
+            elif self._is_previous_step_command(text):
+                self._handle_previous_step()
 
         return True
 
@@ -291,51 +306,26 @@ class ChatService:
 
     def start(self):
         """启动对话服务"""
-        self.notify('魔方助手已启动，说"魔方"开始...')
+        self.notify('魔方助手已启动，说"解魔方"开始...')
 
+        # todo debug only
+        # self._cube_state = "ggybgrrrybwwborgybbowyrygbyyyoowgrrrwwrgywowgbbooboogw"
+        # self._start_solving()
+
+        threads = []
         try:
-            self.adb.listen_asr(self.handle_message)
+            logcat_thread = threading.Thread(
+                target=self.adb.logcat, args=(self.handle_message,)
+            )
+            volume_thread = threading.Thread(
+                target=self.adb.listen_volume, args=(self.handle_message,)
+            )
+            threads.append(logcat_thread)
+            threads.append(volume_thread)
+            for thread in threads:
+                thread.start()
         except KeyboardInterrupt:
-            self.notify("服务已停止")
-
-    def demo_mode(self, interactive: bool = True):
-        """
-        演示模式（不需要 ADB 设备）
-        模拟用户输入进行测试
-
-        Args:
-            interactive: 是否交互式（等待用户按回车）
-        """
-        # 启用演示模式标志
-        self._demo_mode = True
-        self.notify("进入演示模式...")
-
-        # 模拟用户输入序列
-        demo_inputs = [
-            "帮我还原魔方",
-            "这是前面",
-            "这是上面",
-            "这是下面",
-            "这是左面",
-            "这是右面",
-            "这是后面",
-        ]
-
-        for text in demo_inputs:
-            msg = AsrMessage(id="demo", text=text, raw=text)
-            self._handle_message_internal(msg)
-
-            if self.context.state == DialogState.GUIDING:
-                break
-
-        # 模拟用户逐步确认
-        if self.context.state == DialogState.GUIDING:
-            while self.context.current_step_index < len(self.context.solution_steps):
-                if interactive:
-                    try:
-                        input("按回车继续下一步...")
-                    except EOFError:
-                        # 非交互模式下自动继续
-                        pass
-                msg = AsrMessage(id="demo", text="下一步", raw="下一步")
-                self._handle_message_internal(msg)
+            pass
+        finally:
+            for thread in threads:
+                thread.join()
