@@ -1,3 +1,6 @@
+from typing import Union
+
+import numpy as np
 import torch
 from ultralytics import YOLO
 
@@ -12,16 +15,24 @@ class YOLOv11Predictor:
 
     @staticmethod
     def predict(
-        image_path: str,
+        source: Union[str, np.ndarray],
         verbose: bool = False,
         conf_threshold=0.5,
         iou_threshold=0.5,
     ):
-        """对图片进行预测"""
+        """
+        对图片进行预测
+
+        Args:
+            source: 图片路径(str)或图像数组(numpy.ndarray)
+            verbose: 是否显示详细信息
+            conf_threshold: 置信度阈值
+            iou_threshold: IoU阈值
+        """
         self = YOLOv11Predictor()
 
         results = self.model.predict(
-            source=image_path,
+            source=source,
             conf=conf_threshold,
             iou=iou_threshold,
             device=self.device,
