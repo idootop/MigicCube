@@ -100,6 +100,7 @@ class ChatService:
     def notify(self, message: str):
         """默认通知方法（打印到控制台）"""
         print(f"🤖 助手: {message}")
+        self.adb.tts(message)
 
     def _get_current_face(self) -> Optional[CubeFaceData]:
         """获取当前需要收集的面"""
@@ -207,7 +208,6 @@ class ChatService:
             self.context.state = DialogState.GUIDING
 
             self.notify(f"魔方已经解好了！一共需要 {len(moves)} 步")
-            self._handle_next_step()
 
         except Exception as e:
             self.notify(f"求解失败: {e}")
@@ -309,8 +309,8 @@ class ChatService:
         self.notify('魔方助手已启动，说"解魔方"开始...')
 
         # todo debug only
-        # self._cube_state = "ggybgrrrybwwborgybbowyrygbyyyoowgrrrwwrgywowgbbooboogw"
-        # self._start_solving()
+        self._cube_state = "ggybgrrrybwwborgybbowyrygbyyyoowgrrrwwrgywowgbbooboogw"
+        self._start_solving()
 
         threads = []
         try:

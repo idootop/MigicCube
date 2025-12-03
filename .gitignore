@@ -13,5 +13,4 @@ wheels/
 .DS_Store
 temp
 data
-src/vision/scripts
-src/web/state.json
+src/scripts

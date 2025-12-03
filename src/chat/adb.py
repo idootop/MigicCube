@@ -25,9 +25,11 @@ class AdbHelper:
         self,
         server_device: str = "",
         client_device: str = "",
+        tts_api: str = "",
     ):
         self.server_device = server_device
         self.client_device = client_device
+        self.tts_api = tts_api
 
     def clear_logcat(self):
         """清除 logcat 日志"""
@@ -185,3 +187,8 @@ class AdbHelper:
             error_message="播放失败",
             device="client",
         )
+
+    def tts(self, text: str):
+        if not self.tts_api:
+            return
+        return self.play_audio(f"{self.tts_api}?text={text}")
