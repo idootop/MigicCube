@@ -93,6 +93,7 @@ class ChatService:
     def __init__(self, adb_helper: Optional[AdbHelper] = None):
         self.adb = adb_helper or AdbHelper()
         self.context = DialogContext()
+        self._cube_state: str | None = None
 
         # 确保 temp 目录存在
         os.makedirs("temp", exist_ok=True)
@@ -239,7 +240,7 @@ class ChatService:
 
     def _is_next_step_command(self, text: str) -> bool:
         """检查是否是下一步指令"""
-        keywords = ["下一步", "音量变大"]
+        keywords = ["下一步", "好了", "好的", "继续", "音量变大"]
         return any(kw in text for kw in keywords)
 
     def _is_previous_step_command(self, text: str) -> bool:
@@ -306,11 +307,11 @@ class ChatService:
 
     def start(self):
         """启动对话服务"""
-        self.notify('魔方助手已启动，说"解魔方"开始...')
+        print('魔方助手已启动，请说"解魔方"开始...')
 
         # todo debug only
-        self._cube_state = "ggybgrrrybwwborgybbowyrygbyyyoowgrrrwwrgywowgbbooboogw"
-        self._start_solving()
+        # self._cube_state = "ggybgrrrybwwborgybbowyrygbyyyoowgrrrwwrgywowgbbooboogw"
+        # self._start_solving()
 
         threads = []
         try:
