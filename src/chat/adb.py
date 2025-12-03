@@ -124,51 +124,64 @@ class AdbHelper:
             process.terminate()
             process.wait()
 
-    def save_photo(self, output_path: str = "temp/photo.jpg") -> bool:
+    def shell(
+        self,
+        command: str,
+        device="client",
+        error_message="调用失败",
+        return_result=False,
+    ):
         """
-        保存最新图片封面到本地
+        调用客户端设备
         """
         try:
             result = subprocess.run(
                 [
                     "adb",
                     "-s",
-                    self.client_device,
+                    self.client_device if device == "client" else self.server_device,
                     "shell",
-                    "cat /storage/emulated/0/DCIM/XiaoAi/*.jpg",
-                ],
-                capture_output=True,
-            )
-            if result.stdout:
-                with open(output_path, "wb") as f:
-                    f.write(result.stdout)
-                return True
-            return False
-        except Exception as e:
-            print(f"保存图片失败: {e}")
-            return False
-
-    def take_photo(self) -> bool:
-        """
-        使用客户端设备拍照（拍照时需要确保不在唤醒状态）
-        """
-        try:
-            # 发送拍照广播
-            result = subprocess.run(
-                [
-                    "adb",
-                    "-s",
-                    self.client_device,
-                    "shell",
-                    "am",
-                    "broadcast",
-                    "-a",
-                    "android.intent.action.lumi.TAKE_PHOTO",
+                    command,
                 ],
                 capture_output=True,
                 check=True,
             )
+            if return_result:
+                return result
             return result.returncode == 0
         except Exception as e:
-            print(f"拍照失败: {e}")
+            print(f"{error_message}: {e}")
+            if return_result:
+                return None
             return False
+
+    def save_photo(self, output_path: str = "temp/photo.jpg") -> bool:
+        """
+        保存最新图片封面到本地
+        """
+        result = self.shell(
+            "cat /storage/emulated/0/DCIM/XiaoAi/*.jpg",
+            error_message="保存图片失败",
+            device="client",
+            return_result=True,
+        )
+        if result and result.stdout:
+            with open(output_path, "wb") as f:
+                f.write(result.stdout)
+            return True
+        return False
+
+    def take_photo(self) -> bool:
+        return self.shell(
+            "am broadcast -a android.intent.action.lumi.TAKE_PHOTO",
+            error_message="拍照失败",
+            device="client",
+        )
+
+    def play_audio(self, uri: str):
+        # 使用第三方应用（https://github.com/mpv-android/mpv-android）播放音频
+        return self.shell(
+            f'am force-stop is.xyz.mpv && am start -a android.intent.action.VIEW -p is.xyz.mpv -t audio/* -d "{uri}"',
+            error_message="播放失败",
+            device="client",
+        )
