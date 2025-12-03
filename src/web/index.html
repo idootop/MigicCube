@@ -4,15 +4,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>XIAOMI AI LENS // CUBE SOLVER</title>
-
+  <title>MigicCube</title>
+  <meta name="description"
+    content="MigicCube 是一款基于小米 AI 眼镜的魔方复原应用，通过眼镜摄像头自动扫描魔方状态，利用 CFOP 公式计算最优解法，并在网页上使用 3D 动画演示每一步转动，让复原魔方变得前所未有的简单和有趣。">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;700&display=swap"
     rel="stylesheet">
-
   <script src="/jquery.min.js"></script>
-
   <style>
     :root {
       --primary-color: #00f3ff;
@@ -30,18 +29,43 @@
       user-select: none;
     }
 
+    a {
+      color: var(--primary-color);
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
     body {
       background-color: var(--bg-color);
       color: var(--primary-color);
       font-family: 'Share Tech Mono', monospace;
       margin: 0;
-      height: 100vh;
-      overflow: hidden;
+      min-height: 100vh;
+      overflow-x: hidden;
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       position: relative;
+    }
+
+    * {
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+
+    /* 移动端适配 */
+    @media (max-height: 800px) {
+      body {
+        justify-content: flex-start;
+      }
     }
 
     /* 背景网格特效 */
@@ -88,22 +112,27 @@
     .hud-container {
       position: relative;
       width: 100%;
-      height: 100%;
+      min-height: 100vh;
       max-width: 600px;
       padding: 20px;
+      padding-bottom: 40px;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: flex-start;
       align-items: center;
       gap: 48px;
     }
 
+    /* 移动端小屏幕优化 */
+    @media (max-width: 480px) {
+      .hud-container {
+        gap: 20px;
+      }
+    }
+
     /* 顶部状态栏 */
     .header-bar {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      right: 20px;
+      width: 100%;
       display: flex;
       justify-content: space-between;
       border-bottom: 1px solid var(--border-color);
@@ -111,6 +140,15 @@
       text-transform: uppercase;
       font-size: 12px;
       letter-spacing: 1px;
+    }
+
+    /* 移动端小屏幕优化 */
+    @media (max-width: 480px) {
+      .header-bar {
+        font-size: 10px;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
     }
 
     .status-badge {
@@ -198,6 +236,17 @@
       opacity: 0.7;
     }
 
+    /* 移动端小屏幕优化 */
+    @media (max-width: 480px) {
+      #intro {
+        font-size: 18px;
+      }
+
+      #intro span {
+        font-size: 10px;
+      }
+    }
+
     /* 底部数据区 */
     .data-panel {
       width: 100%;
@@ -206,6 +255,14 @@
       font-size: 12px;
       display: flex;
       justify-content: space-between;
+    }
+
+    /* 移动端小屏幕优化 */
+    @media (max-width: 480px) {
+      .data-panel {
+        font-size: 10px;
+        gap: 8px;
+      }
     }
 
     .alg-monitor {
@@ -232,6 +289,13 @@
       font-size: 16px !important;
       text-align: center !important;
       text-shadow: 0 0 5px var(--primary-color);
+    }
+
+    /* 移动端小屏幕优化 */
+    @media (max-width: 480px) {
+      .roofpig-algtext {
+        font-size: 14px !important;
+      }
     }
 
     /* 当前步骤高亮 */
@@ -262,9 +326,15 @@
 
     /* 隐藏不必要的帮助按钮和计数器，让界面更干净 */
     .roofpig-help-button,
-    .roofpig-count,
     .roofpig-help {
       display: none !important;
+    }
+
+    .roofpig-count {
+      max-width: 0;
+      max-height: 0;
+      opacity: 0;
+      visibility: hidden;
     }
 
     .roofpig>div:nth-child(3) {
@@ -278,12 +348,13 @@
 
     /* 进度条 */
     .progress-bar-container {
-      position: absolute;
+      position: sticky;
       bottom: 0;
       left: 0;
       width: 100%;
       height: 2px;
       background: #333;
+      z-index: 100;
     }
 
     .progress-bar {
@@ -302,8 +373,8 @@
 
   <div class="hud-container">
     <div class="header-bar">
-      <div>XIAOMI AI GLASSES <span class="blink">_CONNECTED</span></div>
-      <div>BAT: 92% | NET: 5G</div>
+      <a href="https://del.wang" target="_blank">Made with <span class="blink">❤️</span> by del.wang</a>
+      <a href="https://github.com/idootop/MigicCube" target="_blank">⭐️ Github</a>
     </div>
 
     <div id="cube-viewport">
@@ -314,14 +385,14 @@
 
       <div id="intro">
         SYSTEM INITIALIZING...
-        <span>WAITING FOR VISUAL DATA</span>
+        <span class="blink">WAITING FOR VISUAL DATA</span>
       </div>
 
     </div>
 
     <div class="data-panel">
       <div class="alg-monitor">
-        > PROTOCOL: KOCIEMBA<br>
+        > ENGINE: CFOP<br>
         > STATUS: <span id="status-text">IDLE</span>
       </div>
       <div style="text-align: right;">
@@ -337,91 +408,69 @@
 
   <script>
     (async () => {
-      let pre_state = {}
       const statusText = document.getElementById('status-text');
       const introDiv = document.getElementById('intro');
       const viewport = document.getElementById('cube-viewport');
       const progressBar = document.getElementById('solve-progress');
 
-      // 模拟一些随机的“计算中”效果
+      // 加载
       const randomStatus = ["ANALYZING GEOMETRY", "CALCULATING VECTORS", "OPTIMIZING PATH", "SYNCING..."];
+      for (let i = 0; i < 3; i++) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        statusText.innerText = randomStatus[Math.floor(Math.random() * randomStatus.length)];
+      }
 
+      // 初始化
+      const state = {
+        "step": 0,
+        "ops": "y z2 U F2 L2 U R2 B' D L' D' L U' L' U2 B' U' B U' B U' B' U B U B' U' R U2 R' U R U' R' U' L' U' L U' L' U' L F' U F U2' F' U' L' U L U F L' U' B' L U L' U' L' B L2 U' L' U' L U L' U L",
+        "reversed_ops": "L' U' L U' L' U L U L2 B' L U L U' L' B U L F' U' L' U' L U F U2 F' U' F L' U L U L' U L U R U R' U' R U2 R' U B U' B' U' B U B' U B' U B U2 L U L' D L D' B R2 U' L2 F2 U' z2 y'"
+      }
+
+      statusText.innerText = "SOLUTION COMPUTED";
+      statusText.style.color = "#00ff00"; // Green
+
+      // 移除加载文字
+      introDiv.style.display = 'none';
+
+      const roofpig = document.createElement('div');
+      roofpig.classList.add('roofpig');
+
+      // 配置 Roofpig
+      roofpig.setAttribute("data-config", Object.entries({
+        alg: state.ops,
+        algdisplay: "2p",
+        flags: 'showalg',
+      }).map(([key, value]) => `${key}=${value}`).join("|"));
+
+      viewport.appendChild(roofpig);
+
+      // 触发 Roofpig 初始化
+      new CubeAnimation($(roofpig));
+
+      // 把 .roofpig-algtext 移动到 cube-viewport 和 data-panel 之间显示
+      const algtext = document.querySelector('.roofpig-algtext');
+      algtext.style.height = 'auto';
+      algtext.remove();
+      viewport.parentNode.insertBefore(algtext, viewport.nextSibling);
+
+      // 状态同步
       while (true) {
-        try {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 100));
 
-          // 真实环境中请求 state.json
-          const res = await fetch("/state.json");
-          const state = await res.json();
+        const cube = CubeAnimation.by_id[1];
 
-          if (!state?.ops) {
-            // 偶尔更新一下状态文字增加真实感
-            if (Math.random() > 0.7) statusText.innerText = randomStatus[Math.floor(Math.random() * randomStatus.length)];
-            continue
-          }
-
-          // 初始化 Roofpig
-          if (!pre_state.ops) {
+        if (cube) {
+          // 计算进度条
+          const p = document.querySelector('.roofpig-count').innerHTML;
+          const [currentStep, totalSteps] = p.split('/').map(Number);
+          const progress = Math.min((currentStep / totalSteps) * 100, 100);
+          progressBar.style.width = `${progress}%`;
+          if (currentStep) {
+            statusText.innerText = currentStep === totalSteps ? 'SOLUTION SOLVED' : `EXECUTING STEP ${currentStep}/${totalSteps}`;
+          } else {
             statusText.innerText = "SOLUTION COMPUTED";
-            statusText.style.color = "#00ff00"; // Green
-
-            // 移除加载文字
-            introDiv.style.display = 'none';
-
-            const roofpig = document.createElement('div');
-            roofpig.classList.add('roofpig');
-
-            // 配置 Roofpig
-            roofpig.setAttribute("data-config", Object.entries({
-              alg: state.ops,
-              algdisplay: "2p",
-              flags: 'showalg',
-            }).map(([key, value]) => `${key}=${value}`).join("|"));
-
-            viewport.appendChild(roofpig);
-
-            // 触发 Roofpig 初始化
-            new CubeAnimation($(roofpig));
-
-            // 把 .roofpig-algtext 移动到 cube-viewport 和 data-panel 之间显示
-            const algtext = document.querySelector('.roofpig-algtext');
-            algtext.style.height = 'auto';
-            algtext.remove();
-            viewport.parentNode.insertBefore(algtext, viewport.nextSibling);
           }
-
-          // 状态同步逻辑
-          if (pre_state.step == state.step) {
-            continue
-          }
-
-          pre_state = state
-
-          // 获取 Roofpig 实例 (通常 ID 为 1)
-          const cube = CubeAnimation.by_id[1];
-
-          if (cube) {
-            // 计算进度条
-            const totalSteps = state.ops.split(' ').length;
-            const currentStep = state.step;
-            const progress = Math.min((currentStep / totalSteps) * 100, 100);
-            progressBar.style.width = `${progress}%`;
-
-            // 核心同步逻辑
-            const direction = state.step > cube.alg.next ? 'next' : 'prev';
-            const times = Math.abs(state.step - cube.alg.next);
-
-            statusText.innerText = `EXECUTING STEP ${state.step}/${totalSteps}`;
-
-            for (let i = 0; i < times; i++) {
-              cube.button_click(direction);
-            }
-          }
-
-        } catch (e) {
-          console.log("Waiting for connection...", e);
-          statusText.innerText = "CONNECTION LOST - RETRYING";
-          statusText.style.color = "var(--secondary-color)";
         }
       }
     })()
