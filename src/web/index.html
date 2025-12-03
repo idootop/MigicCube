@@ -1,189 +1,432 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>魔方</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>XIAOMI AI LENS // CUBE SOLVER</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;700&display=swap"
+    rel="stylesheet">
+
   <script src="/jquery.min.js"></script>
+
   <style>
+    :root {
+      --primary-color: #00f3ff;
+      /* 赛博青 */
+      --secondary-color: #ff0055;
+      /* 警告红 */
+      --bg-color: #050a10;
+      --panel-bg: rgba(0, 243, 255, 0.05);
+      --border-color: rgba(0, 243, 255, 0.3);
+      --scan-line: rgba(0, 243, 255, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
     body {
+      background-color: var(--bg-color);
+      color: var(--primary-color);
+      font-family: 'Share Tech Mono', monospace;
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* 背景网格特效 */
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      z-index: -1;
+    }
+
+    /* 扫描线动画 */
+    .scanline {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: var(--primary-color);
+      opacity: 0.3;
+      box-shadow: 0 0 10px var(--primary-color);
+      animation: scan 4s linear infinite;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    @keyframes scan {
+      0% {
+        top: -10%;
+      }
+
+      100% {
+        top: 110%;
+      }
+    }
+
+    /* UI 布局框架 */
+    .hud-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-width: 600px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 48px;
+    }
+
+    /* 顶部状态栏 */
+    .header-bar {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 5px;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 1px;
+    }
+
+    .status-badge {
+      background: var(--primary-color);
+      color: #000;
+      padding: 2px 6px;
+      font-weight: bold;
+    }
+
+    .blink {
+      animation: blinker 1.5s linear infinite;
+    }
+
+    @keyframes blinker {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    /* 主显示区 */
+    #cube-viewport {
+      position: relative;
+      width: 100%;
+      height: 400px;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      margin: 0;
-      padding: 0;
+      border: 1px solid var(--border-color);
+      background: var(--panel-bg);
+      /* 角落装饰 */
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%,
+          0 100%, 0 20px, 20px 0);
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
     }
 
-    .roofpig {
+    /* 装饰角标 */
+    .corner-decor {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border: 2px solid var(--primary-color);
+      transition: all 0.3s;
+    }
+
+    .tl {
+      top: 5px;
+      left: 5px;
+      border-right: none;
+      border-bottom: none;
+    }
+
+    .tr {
+      top: 5px;
+      right: 5px;
+      border-left: none;
+      border-bottom: none;
+    }
+
+    .bl {
+      bottom: 5px;
+      left: 5px;
+      border-right: none;
+      border-top: none;
+    }
+
+    .br {
+      bottom: 5px;
+      right: 5px;
+      border-left: none;
+      border-top: none;
+    }
+
+    /* 初始化加载文字 */
+    #intro {
+      text-align: center;
+      font-size: 24px;
+      text-shadow: 0 0 10px var(--primary-color);
+      letter-spacing: 2px;
+    }
+
+    #intro span {
+      display: block;
+      font-size: 12px;
+      margin-top: 10px;
+      opacity: 0.7;
+    }
+
+    /* 底部数据区 */
+    .data-panel {
       width: 100%;
-      max-width: min(calc(100vw - 40px), 300px);
+      border-top: 1px solid var(--border-color);
+      padding-top: 10px;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .alg-monitor {
+      color: #fff;
+      font-family: 'Share Tech Mono', monospace;
+      opacity: 0.8;
+    }
+
+    /* -----------------------------------------------------
+       Roofpig 样式暴力覆盖 (CSS Override)
+       ----------------------------------------------------- */
+    .roofpig {
+      width: 100% !important;
+      max-width: 320px !important;
+      background: transparent !important;
       border: none !important;
     }
 
+    /* 隐藏掉原本丑陋的背景 */
     .roofpig-algtext {
-      font-size: 14px !important;
-      height: auto !important;
-      padding: 4px;
+      background: transparent !important;
+      color: var(--primary-color) !important;
+      font-family: 'Share Tech Mono', monospace !important;
+      font-size: 16px !important;
+      text-align: center !important;
+      text-shadow: 0 0 5px var(--primary-color);
     }
 
-    div :has(.roofpig-algtext) {
-      height: auto !important;
-      border: none !important;
-    }
-
-    .roofpig-button {
-      font-family: Lucida Sans Unicode, Lucida Grande, sans-serif;
-      font-weight: normal;
-      font-style: normal;
-      padding: 0;
-      box-shadow: inset 0px 1px 0px 0px #ffffff;
-      background-color: #ededed;
-      border: 1px solid #dcdcdc;
-      outline: none;
-      border-radius: 2px;
-      text-indent: 0;
-      display: inline-block;
-      text-decoration: none;
-      text-align: center;
-      text-shadow: 1px 1px 0 #ffffff;
-    }
-
-    .roofpig-button-enabled {
-      background: -webkit-gradient(linear, left top, left bottom, color-stop(0.05, #ededed), color-stop(1, #bbb));
-      background: -moz-linear-gradient(center top, #ededed 5%, #bbb 100%);
-      filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ededed', endColorstr='#bbb');
-    }
-
-    .roofpig-button-enabled:hover {
-      background: -webkit-gradient(linear, left top, left bottom, color-stop(0.05, #bbb), color-stop(1, #ededed));
-      background: -moz-linear-gradient(center top, #bbb 5%, #ededed 100%);
-      filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#bbb', endColorstr='#ededed');
-    }
-
-    .roofpig-button-enabled:active,
-    .roofpig-button-fake-active {
-      position: relative;
-      top: 2px;
-    }
-
-    .roofpig-count {
-      font-weight: normal;
-      font-style: normal;
-      color: black;
-      text-align: right;
-      float: right;
-    }
-
-    .roofpig-algtext {
-      background-color: #eee;
-      margin-bottom: 2px;
-      font-weight: normal;
-      font-style: normal;
-      color: black;
-    }
-
+    /* 当前步骤高亮 */
     .roofpig-past-algtext {
-      background-color: #ff9;
+      background-color: rgba(0, 243, 255, 0.2) !important;
+      color: #fff !important;
     }
 
-    .roofpig-help-button {
-      font-size: 14px;
-      height: 20px;
-      width: 20px;
-      position: absolute;
-      right: 2px;
-      top: 3px;
-
-      color: #ddd;
-      text-align: center;
-      border-radius: 8px;
+    /* 按钮样式重写 */
+    .roofpig-button {
+      background: transparent !important;
+      border: 1px solid var(--border-color) !important;
+      color: var(--primary-color) !important;
+      box-shadow: none !important;
+      text-shadow: none !important;
+      font-family: 'Rajdhani', sans-serif !important;
+      border-radius: 0 !important;
+      margin: 0 2px !important;
+      transition: all 0.2s;
     }
 
-    .roofpig-help-button:hover {
-      color: black;
-      background-color: rgba(220, 220, 220, 0.7);
+    .roofpig-button:hover {
+      background: var(--primary-color) !important;
+      color: #000 !important;
+      box-shadow: 0 0 10px var(--primary-color) !important;
+      cursor: pointer;
     }
 
-    .roofpig-help-button:active {
-      background-color: #aaa;
-    }
-
+    /* 隐藏不必要的帮助按钮和计数器，让界面更干净 */
+    .roofpig-help-button,
+    .roofpig-count,
     .roofpig-help {
+      display: none !important;
+    }
+
+    .roofpig>div:nth-child(3) {
+      border-top: none !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      margin-top: 10px !important;
+      height: auto !important;
+    }
+
+    /* 进度条 */
+    .progress-bar-container {
       position: absolute;
-      top: -1px;
-      white-space: nowrap;
-
-      font-size: 10px;
-      font-weight: normal;
-      font-style: normal;
-      color: black;
-      text-align: left;
-      background-color: rgba(255, 255, 255, 0.94);
-
-      border: 1px solid #aaa;
-      padding: 0 4px 4px 4px;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: #333;
     }
 
-    .roofpig-help div {
-      margin: 2px 0;
-    }
-
-    .roofpig-help span {
-      font-size: 11px;
-      padding: 0 2px;
-      background-color: #ddd;
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--primary-color);
+      box-shadow: 0 0 5px var(--primary-color);
+      transition: width 0.3s;
     }
   </style>
 </head>
 
 <body>
-  <!-- todo intro page -->
-  <div id="intro">小米 AI 眼镜解魔方</div>
+
+  <div class="scanline"></div>
+
+  <div class="hud-container">
+    <div class="header-bar">
+      <div>XIAOMI AI GLASSES <span class="blink">_CONNECTED</span></div>
+      <div>BAT: 92% | NET: 5G</div>
+    </div>
+
+    <div id="cube-viewport">
+      <div class="corner-decor tl"></div>
+      <div class="corner-decor tr"></div>
+      <div class="corner-decor bl"></div>
+      <div class="corner-decor br"></div>
+
+      <div id="intro">
+        SYSTEM INITIALIZING...
+        <span>WAITING FOR VISUAL DATA</span>
+      </div>
+
+    </div>
+
+    <div class="data-panel">
+      <div class="alg-monitor">
+        > PROTOCOL: KOCIEMBA<br>
+        > STATUS: <span id="status-text">IDLE</span>
+      </div>
+      <div style="text-align: right;">
+        TARGET: 3x3x3 CUBE<br>
+        LATENCY: 12ms
+      </div>
+    </div>
+
+    <div class="progress-bar-container">
+      <div class="progress-bar" id="solve-progress"></div>
+    </div>
+  </div>
+
   <script>
     (async () => {
       let pre_state = {}
+      const statusText = document.getElementById('status-text');
+      const introDiv = document.getElementById('intro');
+      const viewport = document.getElementById('cube-viewport');
+      const progressBar = document.getElementById('solve-progress');
+
+      // 模拟一些随机的“计算中”效果
+      const randomStatus = ["ANALYZING GEOMETRY", "CALCULATING VECTORS", "OPTIMIZING PATH", "SYNCING..."];
+
       while (true) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const res = await fetch("/state.json");
-        const state = await res.json();
-        if (!state?.ops) {
-          continue
-        }
+        try {
+          await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // 初始化状态
-        if (!pre_state.ops) {
-          const roofpig = document.createElement('div');
-          roofpig.classList.add('roofpig');
-          roofpig.setAttribute("data-config", Object.entries({
-            // setupmoves: state.reversed_ops,
-            alg: state.ops,
-            algdisplay: "2p",
-            flags: 'showalg'
-          }).map(([key, value]) => `${key}=${value}`).join("|"));
-          document.body.appendChild(roofpig);
-          document.getElementById('intro').remove()
-          new CubeAnimation($(roofpig))
-        }
+          // 真实环境中请求 state.json
+          const res = await fetch("/state.json");
+          const state = await res.json();
 
-        if (pre_state.step == state.step) {
-          continue
-        }
+          if (!state?.ops) {
+            // 偶尔更新一下状态文字增加真实感
+            if (Math.random() > 0.7) statusText.innerText = randomStatus[Math.floor(Math.random() * randomStatus.length)];
+            continue
+          }
 
-        pre_state = state
+          // 初始化 Roofpig
+          if (!pre_state.ops) {
+            statusText.innerText = "SOLUTION COMPUTED";
+            statusText.style.color = "#00ff00"; // Green
 
-        const cube = CubeAnimation.by_id[1]
+            // 移除加载文字
+            introDiv.style.display = 'none';
 
-        // 前进后退到当前的 step
-        const direction = state.step > cube.alg.next ? 'next' : 'prev';
-        const times = Math.abs(state.step - cube.alg.next)
-        for (let i = 0; i < times; i++) {
-          CubeAnimation.by_id[1].button_click(direction);
+            const roofpig = document.createElement('div');
+            roofpig.classList.add('roofpig');
+
+            // 配置 Roofpig
+            roofpig.setAttribute("data-config", Object.entries({
+              alg: state.ops,
+              algdisplay: "2p",
+              flags: 'showalg',
+            }).map(([key, value]) => `${key}=${value}`).join("|"));
+
+            viewport.appendChild(roofpig);
+
+            // 触发 Roofpig 初始化
+            new CubeAnimation($(roofpig));
+
+            // 把 .roofpig-algtext 移动到 cube-viewport 和 data-panel 之间显示
+            const algtext = document.querySelector('.roofpig-algtext');
+            algtext.style.height = 'auto';
+            algtext.remove();
+            viewport.parentNode.insertBefore(algtext, viewport.nextSibling);
+          }
+
+          // 状态同步逻辑
+          if (pre_state.step == state.step) {
+            continue
+          }
+
+          pre_state = state
+
+          // 获取 Roofpig 实例 (通常 ID 为 1)
+          const cube = CubeAnimation.by_id[1];
+
+          if (cube) {
+            // 计算进度条
+            const totalSteps = state.ops.split(' ').length;
+            const currentStep = state.step;
+            const progress = Math.min((currentStep / totalSteps) * 100, 100);
+            progressBar.style.width = `${progress}%`;
+
+            // 核心同步逻辑
+            const direction = state.step > cube.alg.next ? 'next' : 'prev';
+            const times = Math.abs(state.step - cube.alg.next);
+
+            statusText.innerText = `EXECUTING STEP ${state.step}/${totalSteps}`;
+
+            for (let i = 0; i < times; i++) {
+              cube.button_click(direction);
+            }
+          }
+
+        } catch (e) {
+          console.log("Waiting for connection...", e);
+          statusText.innerText = "CONNECTION LOST - RETRYING";
+          statusText.style.color = "var(--secondary-color)";
         }
       }
     })()
   </script>
+
   <script src="/roofpig.min.js"></script>
 </body>
 
