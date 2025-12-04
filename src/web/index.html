@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MigicCube</title>
   <meta name="description"
-    content="MigicCube 是一款基于小米 AI 眼镜的魔方复原应用，通过眼镜摄像头自动扫描魔方状态，利用 CFOP 公式计算最优解法，并在网页上使用 3D 动画演示每一步转动，让复原魔方变得前所未有的简单和有趣。">
+    content="MigicCube 是一款基于小米 AI 眼镜的魔方复原应用，通过眼镜摄像头自动扫描魔方状态，利用 Kociemba 两阶段方法计算最优解法，并在网页上使用 3D 动画演示每一步转动，让复原魔方变得前所未有的简单和有趣。">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;700&display=swap"
@@ -250,7 +250,6 @@
     /* 底部数据区 */
     .data-panel {
       width: 100%;
-      border-top: 1px solid var(--border-color);
       padding-top: 10px;
       font-size: 12px;
       display: flex;
@@ -353,7 +352,7 @@
       left: 0;
       width: 100%;
       height: 2px;
-      background: #333;
+      background: var(--border-color);
       z-index: 100;
     }
 
@@ -389,20 +388,20 @@
       </div>
 
     </div>
-
-    <div class="data-panel">
-      <div class="alg-monitor">
-        > ENGINE: CFOP<br>
-        > STATUS: <span id="status-text">IDLE</span>
+    <div style="width: 100%;">
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="solve-progress"></div>
       </div>
-      <div style="text-align: right;">
-        TARGET: 3x3x3 CUBE<br>
-        LATENCY: 12ms
+      <div class="data-panel">
+        <div class="alg-monitor">
+          > ENGINE: KOCIEMBA<br>
+          > STATUS: <span id="status-text">IDLE</span>
+        </div>
+        <div style="text-align: right;">
+          TARGET: 3x3x3 CUBE<br>
+          LATENCY: 12ms
+        </div>
       </div>
-    </div>
-
-    <div class="progress-bar-container">
-      <div class="progress-bar" id="solve-progress"></div>
     </div>
   </div>
 
@@ -423,8 +422,8 @@
       // 初始化
       const state = {
         "step": 0,
-        "ops": "y z2 U F2 L2 U R2 B' D L' D' L U' L' U2 B' U' B U' B U' B' U B U B' U' R U2 R' U R U' R' U' L' U' L U' L' U' L F' U F U2' F' U' L' U L U F L' U' B' L U L' U' L' B L2 U' L' U' L U L' U L",
-        "reversed_ops": "L' U' L U' L' U L U L2 B' L U L U' L' B U L F' U' L' U' L U F U2 F' U' F L' U L U L' U L U R U R' U' R U2 R' U B U' B' U' B U B' U B' U B U2 L U L' D L D' B R2 U' L2 F2 U' z2 y'"
+        "ops": "F' L' B2 R' B' R F' L D' L' U2 D2 B2 L' F2 R D2 R' U2",
+        "reversed_ops": "U2 R D2 R' F2 L B2 D2 U2 L D L' F R' B R B2 L F"
       }
 
       statusText.innerText = "SOLUTION COMPUTED";

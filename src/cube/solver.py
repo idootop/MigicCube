@@ -1,3 +1,5 @@
+from cube.kociemba import kociemba_solve
+
 from .core.solver import Solver as CoreSolver
 from .typing import Solution
 
@@ -5,8 +7,20 @@ from .typing import Solution
 class Solver(CoreSolver):
     def __init__(self, cube):
         super().__init__(cube)
+        self._cube_state = str(cube)
 
-    def solve(self):
+    def solve(self, method: str = "kociemba"):
+        if method == "kociemba":
+            moves = kociemba_solve(self._cube_state)
+            if moves:
+                return Solution(
+                    align=moves,
+                    cross="",
+                    f2l="",
+                    oll="",
+                    pll="",
+                )
+
         self.solveCube(optimize=True)
         current = -1
         alignmentMoves = ""

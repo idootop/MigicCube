@@ -44,10 +44,18 @@ class TestCube:
             "魔方状态异常"
         )
 
-    def test_solve(self):
+    def test_solve_cfop(self):
         """测试解决魔方"""
         cube = Cube()
         cube.scramble()
-        cube.solve()
+        solution = cube.solve(method="cfop")
+        print(cube.is_solved(), len(solution.ops.split(" ")))
         assert cube.is_solved(), "魔方应该已经解决"
 
+    def test_solve_kociemba(self):
+        """测试解决魔方"""
+        cube = Cube()
+        cube.scramble(ops="U R F D L B")  # 不改变中心点色块的转动
+        solution = cube.solve(method="kociemba")
+        print(cube.is_solved(), len(solution.ops.split(" ")))
+        assert cube.is_solved(), "魔方应该已经解决"

@@ -157,6 +157,7 @@ dependencies = [
     { name = "numpy" },
     { name = "opencv-python" },
     { name = "pandas" },
+    { name = "rubiktwophase" },
     { name = "torch" },
     { name = "ultralytics" },
 ]
@@ -171,6 +172,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.3.5" },
     { name = "opencv-python", specifier = ">=4.11.0.86" },
     { name = "pandas", specifier = ">=2.3.3" },
+    { name = "rubiktwophase", specifier = ">=1.1.1" },
     { name = "torch", specifier = ">=2.9.1" },
     { name = "ultralytics", specifier = ">=8.3.234" },
 ]
@@ -997,6 +999,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c9/74/b3ff8e6c8446842c3f5c837e9c3dfcfe2018ea6ecef224c710c85ef728f4/requests-2.32.5.tar.gz", hash = "sha256:dbba0bac56e100853db0ea71b82b4dfd5fe2bf6d3754a8893c3af500cec7d7cf", size = 134517, upload-time = "2025-08-18T20:46:02.573Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1e/db/4254e3eabe8020b458f1a747140d32277ec7a271daf1d235b70dc0b4e6e3/requests-2.32.5-py3-none-any.whl", hash = "sha256:2462f94637a34fd532264295e186976db0f5d453d1cdd31473c85a6a161affb6", size = 64738, upload-time = "2025-08-18T20:46:00.542Z" },
+]
+
+[[package]]
+name = "rubiktwophase"
+version = "1.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/55/ec/d1ab747f1e1cc39c7148528f1c6c79dae50d9ba2bc1e9ca45c1e05b47287/RubikTwoPhase-1.1.1.tar.gz", hash = "sha256:3956ab2a684db595371c87c79538fa49d8a540931ea0f1c7518fc562ea53c5bd", size = 46955, upload-time = "2022-11-16T00:57:30.34Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ff/70/d38812a69a5c1142b7d765afb62177e1f71f5a2b122fed681ccd90c3acac/RubikTwoPhase-1.1.1-py3-none-any.whl", hash = "sha256:371230714c6996424b55b27b6193a51f40e1f8b4fc32640de1ede3fa6966e79f", size = 53947, upload-time = "2022-11-16T00:57:28.307Z" },
 ]
 
 [[package]]

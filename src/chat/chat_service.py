@@ -90,8 +90,9 @@ class ChatService:
         CubeFaceData("back", "后面"),
     ]
 
-    def __init__(self, adb_helper: Optional[AdbHelper] = None):
+    def __init__(self, adb_helper: Optional[AdbHelper] = None, debug: bool = False):
         self.adb = adb_helper or AdbHelper()
+        self.debug = debug
         self.context = DialogContext()
         self._cube_state: str | None = None
 
@@ -308,9 +309,9 @@ class ChatService:
         """启动对话服务"""
         print('魔方助手已启动，请说"解魔方"开始...')
 
-        # todo debug only
-        # self._cube_state = "ggybgrrrybwwborgybbowyrygbyyyoowgrrrwwrgywowgbbooboogw"
-        # self._start_solving()
+        if self.debug:
+            self._cube_state = "WYBRRYGROGGRGBBYYOOBROGWWRBYBBOYOGBWYWGGWGBRWYWROOWRYO"
+            self._start_solving()
 
         threads = []
         try:

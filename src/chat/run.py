@@ -29,6 +29,11 @@ def main():
         "--tts",
         help="TTS 接口地址，比如 http://192.168.31.125:8080/tts.wav",
     )
+    parser.add_argument(
+        "--debug",
+        help="是否为调试模式",
+        action="store_true",
+    )
 
     args = parser.parse_args()
 
@@ -47,7 +52,11 @@ def main():
         tts_api=args.tts,
     )
 
-    service = ChatService(adb_helper=adb)
+    service = ChatService(
+        adb_helper=adb,
+        debug=args.debug,
+    )
+
     service.start()
 
 

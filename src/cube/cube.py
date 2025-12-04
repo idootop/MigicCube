@@ -31,18 +31,22 @@ class Cube(CoreCube):
         moves = Move.to_core(ops)
         return super().doMoves(moves)
 
-    def scramble(self, moves_count: int = 100):
+    def scramble(
+        self,
+        moves_count: int = 100,
+        ops: str = "",
+    ):
         """打乱魔方"""
-        moves = [m.value for m in Move]
-        moves = random.choices(moves, k=moves_count)
-        ops = " ".join(moves)
-        self.moves(ops)
-        return ops
+        if not ops:
+            ops = " ".join([m.value for m in Move])
+        moves = " ".join(random.choices(ops.split(" "), k=moves_count))
+        self.moves(moves)
+        return moves
 
-    def solve(self):
+    def solve(self, method: str = "kociemba"):
         """解决魔方"""
         solver = Solver(self)
-        solution = solver.solve()
+        solution = solver.solve(method)
         self.moves(solution.ops)
         return solution
 
