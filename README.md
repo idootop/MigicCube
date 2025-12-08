@@ -1,17 +1,17 @@
 <div align="center">
 
-<img src="assets/logo.png" width="200" />
+<img src="assets/logo.png" width="300" />
 <p align="center">使用小米 AI 眼镜，在 <strong>20 步</strong>内还原任何三阶魔方。</p>
 
 </div>
 
 ## 项目简介
 
-MigicCube 通过小米 AI 眼镜识别魔方，并在 1 秒钟内给出最优解法（20 步以内），然后使用 3D 动画演示每一步转动，让解魔方变得前所未有的简单有趣。
+本项目通过小米 AI 眼镜识别魔方，并在 1 秒钟内给出最优解法（20 步以内），然后使用 3D 动画演示每一步转动，让解魔方变得前所未有的简单有趣。
 
 ## 演示视频
 
-![](assets/demo.gif)
+![Demo](assets/demo.gif)
 
 ## 核心功能
 
@@ -22,10 +22,10 @@ MigicCube 通过小米 AI 眼镜识别魔方，并在 1 秒钟内给出最优解
 
 ## 技术细节
 
-> [!IMPORTANT]
-> 注意，以下操作基于 ADB 调试模式，但小米 AI 眼镜默认并未开启此功能。所以你可能永远无法复现本项目。你可以通过[此视频](#)观看实际效果，或者打开[该网页](https://idootop.github.io/MigicCube)体验解魔方过程。
-
 ![Yolo](assets/yolo.webp)
+
+> [!IMPORTANT]
+> 注意，以下操作基于 ADB 调试模式，但小米 AI 眼镜默认并未开启此功能，所以你可能无法复现本项目。
 
 首先，我们通过 ADB 获取到小米 AI 眼镜上的画面和语音交互记录（[相关代码](src/chat/adb.py)）。
 
