@@ -6,7 +6,7 @@
 
 <p align="center">使用小米 AI 眼镜，<strong>在 20 步内</strong>还原任何三阶魔方</p>
 
-[English Documentation](README.md) | [中文文档](#)
+[演示视频](https://www.bilibili.com/video/BV1hx2SBrETy) | [预览网页](https://idootop.github.io/MigicCube/)
 
 </div>
 
@@ -14,7 +14,11 @@
 
 本项目通过小米 AI 眼镜识别魔方，并在 1 秒钟内给出最优解法（20 步以内），然后使用 3D 动画演示每一步转动，让解魔方变得前所未有的简单有趣。
 
-![Demo](assets/cover.webp)
+## 演示视频
+
+👉 https://www.bilibili.com/video/BV1hx2SBrETy
+
+[![Demo](assets/cover.webp)](https://www.bilibili.com/video/BV1hx2SBrETy)
 
 ## 核心功能
 
